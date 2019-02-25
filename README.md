@@ -1,4 +1,4 @@
-# Igaugev2019
+# I-Gauge V.2019
 Open source hardware water pressure sensor measurement system using Arduino Mega 2560
 
 # Development
