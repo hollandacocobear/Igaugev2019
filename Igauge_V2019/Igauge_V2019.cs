@@ -546,7 +546,7 @@ void ambil() {
     Serial.flush();
     s_off();
     off();
-    if (start < ((interval * 60) - 5)) {
+    if (start < ((interval * 60) - 10)) {
       LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
       LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
     }
