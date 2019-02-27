@@ -1,5 +1,5 @@
 # I-Gauge V.2019
-Open source hardware water pressure sensor measurement system using Arduino Mega 2560
+Open source hardware water pressure sensor measurement system using Arduino Mega 2560 & ESP8266
 
 # Development
 This system develop by Team MANTIS ID collaborate with USAID - IUWASH PLUS, PDAM Tirta Pakuan Kota Bogor, PDAM Tirta Patriot Kota Bekasi, and PDAM Tirta Asasta Kota Depok
