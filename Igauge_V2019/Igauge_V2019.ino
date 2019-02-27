@@ -16,7 +16,6 @@
 
    28-2-2019
    GSM connection OK
-   CEK KUOTA disabled
 
   problem:
   18-2-2019 cannot be uploaded through icsp - solved
@@ -384,9 +383,9 @@ void setup() {
   Serial.flush();
   s_off();
   hapusmenu(17, 64);
-  display.getTextBounds(F("INIT GSM"), 0, 0, &posx, &posy, &w, &h);
+  display.getTextBounds(F("INIT GSM MODULE"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((128 - w) / 2, 20);
-  display.println(F("INIT GSM"));
+  display.println(F("INIT GSM MODULE"));
   display.display();
   sim();
 
@@ -398,13 +397,13 @@ void setup() {
   display.display();
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
   display.getTextBounds(F("*888#3#2"), 0, 0, &posx, &posy, &w, &h);
-  display.setCursor((128 - w) / 2, 30);
+  display.setCursor((128 - w) / 2, 35);
   display.print(F("*888#3#2"));
   display.display();
   //cekkuota();
   i_En(oled);
   display.getTextBounds(F("Finish!!!"), 0, 0, &posx, &posy, &w, &h);
-  display.setCursor((128 - w) / 2, 40);
+  display.setCursor((128 - w) / 2, 50);
   display.print(F("Finish!!!"));
   display.display();
   off();
@@ -463,7 +462,7 @@ void ambil() {
   Serial1.println(F("AT+CSCLK=0"));
   Serial1.flush();
   bacaserial(200);
-  
+
   sekarang = rtc.now();
   waktu = sekarang.unixtime();
   bersihdata();
@@ -539,12 +538,15 @@ void ambil() {
   off();
 
   while (1) {
-    Alarm.delay(0);
-	displaydate();
+    displaydate();
     setTime(nows.hour(), nows.minute(), nows.second(), nows.month(), nows.day(), nows.year());
     int start = nows.unixtime() - waktu;
+    s_on();
+    Serial.println(start);
+    Serial.flush();
+    s_off();
     off();
-    if (start < ((interval * 60) - 15)) {
+    if (start < ((interval * 60) - 10)) {
       LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
       LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
     }
@@ -552,12 +554,13 @@ void ambil() {
       break;
     }
   }
-  Alarm.delay(0);
   i_En(rtc_addr);
   nows = rtc.now();
   setTime(nows.hour(), nows.minute(), nows.second(), nows.month(), nows.day(), nows.year());
+  s_on();
   Serial.println("ready to get data");
-
+  Serial.flush();
+  s_off();
 }
 
 void simpandata() {
@@ -892,12 +895,12 @@ void apn(String nama) {
     USER = "indosat";
     PWD = "indosatgprs";
   }
-  if (nama == "EXCELCOM" || nama =="XL") {
+  if (nama == "EXCELCOM" || nama == "XL") {
     APN = "internet";
     USER = "";
     PWD = "";
   }
-  if (nama == "THREE" || nama =="3") {
+  if (nama == "THREE" || nama == "3") {
     APN = "3data";
     USER = "3data";
     PWD = "3data";
@@ -1060,7 +1063,7 @@ signal:
     if (Serial1.find("+CSQ: ")) {
       while (Serial1.available() > 0) {
         g = Serial1.read();
-		Serial.print(g);
+        Serial.print(g);
         filename += g;
       }
     }
@@ -1207,11 +1210,11 @@ serve:
   s1_on();
   power_timer0_enable();
   Serial.println(F("AT+CGATT= 1 "));
-  Serial1.println(F("AT+CGATT=1")); 
+  Serial1.println(F("AT+CGATT=1"));
   Serial.flush();
   Serial1.flush();
   bacaserial(200);
-  
+
   Serial.print(F("AT+CGATT? "));
   Serial1.println(F("AT+CGATT?"));
   delay(200);
@@ -1238,10 +1241,10 @@ serve:
     Serial.flush();
     Serial1.flush();
     Serial1.println(F("AT+SAPBR=0,1"));
-	bacaserial(200);
+    bacaserial(200);
     Serial.flush();
     Serial1.flush();
-	
+
     //ATUR APN SESUAI DENGAN PROVIDER
     s_on();
     s1_on();
@@ -1259,7 +1262,7 @@ serve:
     s1_on();
     result = "AT+SAPBR=3,1,\"APN\",\"" + APN + "\"";
     Serial1.println(result);
-	Serial1.flush();
+    Serial1.flush();
     bacaserial(200);
     Serial.flush();
     Serial1.flush();
@@ -1318,7 +1321,7 @@ serve:
 
     //SET HTTP PARAMETERS VALUE
     Serial1.println(F("AT+HTTPPARA=\"CID\",1"));
-	Serial1.flush();
+    Serial1.flush();
     bacaserial(200);
     Serial.flush();
     Serial1.flush();
@@ -1463,7 +1466,7 @@ serve:
     }
     bacaserial(500);
     //SEND DATA
-	Serial.println(F("KIRIM DATANYA"));
+    Serial.println(F("KIRIM DATANYA"));
     Serial.println(y);
     Serial1.println(y);
     Serial.flush();
@@ -1471,16 +1474,16 @@ serve:
     bacaserial(1000);
     Serial.flush();
     Serial1.flush();
-	
+
     //HTTP METHOD ACTION
     filename = "";
     power_timer0_enable();
     s_on();
     s1_on();
     start = millis();
-	Serial.println(F("AT+HTTPACTION=1"));
+    Serial.println(F("AT+HTTPACTION=1"));
     Serial1.println(F("AT+HTTPACTION=1"));
-	Serial.flush();
+    Serial.flush();
     Serial1.flush();
     while (Serial1.available() > 0) {
       while (Serial1.find("OK") == false) {
@@ -1501,15 +1504,15 @@ serve:
         Serial.print(g);
         a = filename.indexOf(":");
         b = filename.length();
-        if (b - a > 8){
-			//Serial.println(F("keluar yuk"));
-			break;
-		}
+        if (b - a > 8) {
+          //Serial.println(F("keluar yuk"));
+          break;
+        }
       }
       if (b - a > 8) {
-		  //Serial.println(F("hayuk"));
-		  break;
-	  }
+        //Serial.println(F("hayuk"));
+        break;
+      }
     }
     Serial.flush();
     Serial1.flush();
@@ -1525,7 +1528,7 @@ serve:
     //LowPower.powerDown(SLEEP_500MS, ADC_OFF, BOD_OFF);
     s_on();
     s1_on();
-	Serial.println(F("AT+SAPBR=0,1"));
+    Serial.println(F("AT+SAPBR=0,1"));
     Serial1.println(F("AT+SAPBR=0,1"));
     bacaserial(200);
     a = '0';
@@ -1533,11 +1536,11 @@ serve:
     b = filename.indexOf(',', a + 1);
     kode = filename.substring(a + 1, b).toInt();
     statuscode(kode);
-	Serial.print(F("kode="));
-	Serial.print(kode);
-	Serial.print(F(" network="));
-	Serial.println(network);
-	Serial.flush();
+    Serial.print(F("kode="));
+    Serial.print(kode);
+    Serial.print(F(" network="));
+    Serial.println(network);
+    Serial.flush();
   }
   else {
     network = "Error";
@@ -1548,7 +1551,7 @@ serve:
     s_off();
   }
 
-  }
+}
 
 void cekkuota() {
   c = 0;
@@ -1705,25 +1708,25 @@ down:
 
 
 /*
-{"Data":"'2019-02-26 23:11:20','99.9875','999.9123','10.00','26.00','0.78','80.0000','MEGA2560','BOGOR06','0','0'"}
+  {"Data":"'2019-02-26 23:11:20','99.9875','999.9123','10.00','26.00','0.78','80.0000','MEGA2560','BOGOR06','0','0'"}
 
-AT+CIPSHUT
-AT+SAPBR=0,1
-AT+SAPBR=3,1,"CONTYPE","GPRS"
-AT+SAPBR=3,1,"APN","3data"
-AT+SAPBR=3,1,"USER","3data"
-AT+SAPBR=3,1,"PWD","3data"
-AT+SAPBR=1,1
-AT+SAPBR=2,1
-AT+HTTPTERM
-AT+HTTPINIT
-AT+HTTPPARA="CID",1
-AT+HTTPPARA="URL","http://www.mantisid.id/api/product/pdam_dt_c.php"
-AT+HTTPDATA=115,15000
-{"Data":"'2019-02-27 22:59:33','109.9875','-7.9123','0.16','26.00','0.76','69.0000','MEGA2560','BOGOR06','2','5'"}
-AT+HTTPACTION=1
-AT+HTTPTERM
-AT+SAPBR=0,1
+  AT+CIPSHUT
+  AT+SAPBR=0,1
+  AT+SAPBR=3,1,"CONTYPE","GPRS"
+  AT+SAPBR=3,1,"APN","3data"
+  AT+SAPBR=3,1,"USER","3data"
+  AT+SAPBR=3,1,"PWD","3data"
+  AT+SAPBR=1,1
+  AT+SAPBR=2,1
+  AT+HTTPTERM
+  AT+HTTPINIT
+  AT+HTTPPARA="CID",1
+  AT+HTTPPARA="URL","http://www.mantisid.id/api/product/pdam_dt_c.php"
+  AT+HTTPDATA=115,15000
+  {"Data":"'2019-02-27 22:59:33','109.9875','-7.9123','0.16','26.00','0.76','69.0000','MEGA2560','BOGOR06','2','5'"}
+  AT+HTTPACTION=1
+  AT+HTTPTERM
+  AT+SAPBR=0,1
 */
 
 
