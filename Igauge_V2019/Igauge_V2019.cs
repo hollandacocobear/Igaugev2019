@@ -144,18 +144,15 @@ void setup() {
   display.getTextBounds(F("USAID - PDAM"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((panjang - w) / 2, 0);
   display.println(F("USAID - PDAM"));
-  display.getTextBounds(F("WIFI OSH"), 0, 0, &posx, &posy, &w, &h);
+  display.getTextBounds(F("OSH WATER"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((panjang - w) / 2, 17);
-  display.println(F("WIFI OSH"));
-  display.getTextBounds(F("WATER PRESSURE"), 0, 0, &posx, &posy, &w, &h);
+  display.println(F("OSH WATER"));
+  display.getTextBounds(F("PRESSURE SENSOR"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((panjang - w) / 2, 29);
-  display.println(F("WATER PRESSURE"));
-  display.getTextBounds(F("SENSOR DEVICE"), 0, 0, &posx, &posy, &w, &h);
+  display.println(F("PRESSURE SENSOR"));
+  display.getTextBounds(F("DEVICE 2019"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((panjang - w) / 2, 40);
-  display.println(F("SENSOR DEVICE"));
-  display.getTextBounds(F("2019"), 0, 0, &posx, &posy, &w, &h);
-  display.setCursor((panjang - w) / 2, 52);
-  display.println(F("2019"));
+  display.println(F("DEVICE 2019"));
   display.display();
   i_Dis();
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
@@ -229,6 +226,7 @@ void setup() {
   }
 
   //SD INIT
+  LowPower.powerDown(SLEEP_500MS, ADC_OFF, BOD_OFF);
   hapusmenu(17, 64);
   display.getTextBounds(F("init SD Card..."), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((128 - w) / 2, 20);
@@ -341,9 +339,9 @@ void setup() {
   Serial.flush();
   ads.begin();
   hapusmenu(17, 64);
-  display.getTextBounds(F("CEK PRESSURE SENSOR"), 0, 0, &posx, &posy, &w, &h);
+  display.getTextBounds(F("CHECK PRESSURE SENSOR"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((128 - w) / 2, 20);
-  display.println(F("CEK PRESSURE SENSOR"));
+  display.println(F("CHECK PRESSURE SENSOR"));
   display.display();
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
   //cek via ads1115
@@ -354,7 +352,7 @@ void setup() {
     Serial.println("pressure sensor 1 not connected");
     Serial.flush();
     display.getTextBounds(F("Pressure Sensor"), 0, 0, &posx, &posy, &w, &h);
-    display.setCursor((128 - w) / 2, 40);
+    display.setCursor((128 - w) / 2, 35);
     display.println(F("Pressure Sensor"));
     display.getTextBounds(F("not connected!!"), 0, 0, &posx, &posy, &w, &h);
     display.setCursor((128 - w) / 2, 50);
@@ -366,7 +364,7 @@ void setup() {
 
   Serial.println("pressure sensor 1 connected");
   display.getTextBounds(F("Pressure sensor"), 0, 0, &posx, &posy, &w, &h);
-  display.setCursor((128 - w) / 2, 40);
+  display.setCursor((128 - w) / 2, 35);
   display.println(F("Pressure Sensor"));
   display.getTextBounds(F("Connected"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((128 - w) / 2, 50);
@@ -764,6 +762,11 @@ void configs() {
   else Serial.println(F(" seconds"));
   Serial.print(F("NO HP = "));
   Serial.println(noHP);
+  Serial.print(F("Latitude = "));
+  Serial.println(latitude);
+  Serial.print(F("Longitude = "));
+  Serial.println(longitude);
+  
   Serial.flush();
 }
 
