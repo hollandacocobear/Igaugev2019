@@ -19,7 +19,7 @@
 
   problem:
   18-2-2019 cannot be uploaded through icsp - solved
-
+  4-3-2019 oled not displayed the font size properly
 */
 
 //LIBRARY
@@ -39,28 +39,28 @@
 #include <LowPower.h>
 
 String ID = "BOGOR06";
-String source = "MEGA2560";
+String source = "GSM";
 float offset = 0.0;
-#define DHTPIN          9
-#define DHTTYPE         DHT11
-#define oled           0x3c
-#define ads_addr      0x48
-#define rtc_addr      0x68
-#define panjang       128
-#define lebar         64
-#define pres          0
-#define pres1         1
-#define tegangan      3
-#define connectPres     4
-#define connectPres1    6
-#define SCKpin        52
-#define MISOpin       50
-#define MOSIpin       51
-#define SSpin         53
-//#define ce            48
-//#define csn           49
 //server
 String url = "/api/product/pdam_dt_c.php";
+String server = "http://www.mantisid.id";
+
+#define DHTPIN      9
+#define DHTTYPE         DHT11
+#define oled      0x3c
+#define ads_addr    0x48
+#define rtc_addr    0x68
+#define panjang     128
+#define lebar           64
+#define pres            0
+#define pres1           1
+#define tegangan        3
+#define connectPres     4
+#define connectPres1    6
+#define SCKpin          52
+#define MISOpin         50
+#define MOSIpin         51
+#define SSpin           53
 
 
 // from  http://heliosoph.mit-links.info/arduino-powered-by-capacitor-reducing-consumption/
@@ -108,6 +108,8 @@ char str[13];
 unsigned long reads = 0; //pressure
 unsigned long waktu, start;
 float tekanan, temp, humid, volt;
+float longitude = 999.9123;
+float latitude = 99.1234;
 String y, network, APN, USER, PWD, sms, kuota, noHP, operators, result;
 
 void setup() {
@@ -116,6 +118,8 @@ void setup() {
   Serial1.begin(9600);  // SIM900A
   pinMode(connectPres, INPUT);
   pinMode(connectPres1, INPUT);
+  digitalWrite(connectPres, HIGH);
+  digitalWrite(connectPres1, HIGH);
 
   // disable unused pin function
   ADCSRA = 0; //ADC OFF
@@ -155,6 +159,7 @@ void setup() {
   display.display();
   i_Dis();
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
 
   //display ID unit
   hapusmenu(52, 64);
@@ -165,7 +170,8 @@ void setup() {
   display.display();
   i_Dis();
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
-
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+  
   //RTC INIT
   i_En(oled);
   i_En(rtc_addr);
@@ -174,7 +180,7 @@ void setup() {
   display.setCursor((128 - w) / 2, 20);
   display.println(F("INIT CLOCK"));
   display.display();
-  LowPower.powerDown(SLEEP_500MS, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
   s_on();
   if (! rtc.begin()) { // RTC NOT BEGIN
     Serial.println("Couldn't find RTC");
@@ -199,7 +205,9 @@ void setup() {
     while (1);
   }
 
-  for (i = 1; i < 3; i++) {
+  nows = rtc.now();
+  interval = nows.second();
+  while (nows.second() < interval + 3) {
     nows = rtc.now();
     filename = String(nows.month()) + '/' + String(nows.day()) + '/' + String(nows.year()) + ' ' + String(nows.hour()) + ':' + String(nows.minute()) + ':' + String(nows.second());
     Serial.println(filename);
@@ -217,7 +225,7 @@ void setup() {
     display.print(":");
     lcd2digits(nows.second());
     display.display();
-    LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
+    LowPower.powerDown(SLEEP_120MS, ADC_OFF, BOD_OFF);
   }
 
   //SD INIT
@@ -230,9 +238,9 @@ void setup() {
   digitalWrite(SSpin, HIGH);
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
   spiEn();
+  s_on();
   delay(100);
   if (!SD.begin(SSpin)) { //SD ERROR
-    s_on();
     Serial.println(F("SD init error!!!"));
     Serial.flush();
     display.getTextBounds(F("SD Card Error!!!"), 0, 0, &posx, &posy, &w, &h);
@@ -243,7 +251,6 @@ void setup() {
     while (1);
   }
 
-  s_on();
   Serial.println(F("SD CARD INIT OK!"));
   Serial.flush();
   display.getTextBounds(F("SD Card OK!"), 0, 0, &posx, &posy, &w, &h);
@@ -252,6 +259,7 @@ void setup() {
   display.display();
   off();
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
 
   //GET CONFIG TXT
   hapusmenu(17, 64);
@@ -259,12 +267,13 @@ void setup() {
   display.setCursor((128 - w) / 2, 20);
   display.println(F("CONFIGURATION FILE"));
   display.display();
+  LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
   pinMode(SSpin, OUTPUT);
   digitalWrite(SSpin, HIGH);
   spiEn();
   LowPower.powerDown(SLEEP_120MS, ADC_OFF, BOD_OFF);
   configs();
-  LowPower.powerDown(SLEEP_500MS, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
   off();
 
   //DISPLAY BURST INTERVAL
@@ -272,6 +281,8 @@ void setup() {
   display.getTextBounds(F("BURST SAMPLING"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((128 - w) / 2, 40);
   display.print(F("BURST SAMPLING"));
+  display.display();
+  LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
   display.getTextBounds(F("10 SECONDS"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((128 - w) / 2, 52);
   display.print(burst);
@@ -282,12 +293,15 @@ void setup() {
   display.display();
   off();
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
   //---------------------------------------------------------------
   //DISPLAY DATA INTERVAL
   hapusmenu(40, 64);
   display.getTextBounds(F("INTERVAL DATA"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((128 - w) / 2, 40);
   display.print(F("INTERVAL DATA"));
+  display.display();
+  LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
   display.getTextBounds(F("10 MINUTES"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((128 - w) / 2, 52);
   display.print(interval);
@@ -300,17 +314,21 @@ void setup() {
   display.display();
   off();
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
   //---------------------------------------------------------------
   //DISPLAY NO HP
   hapusmenu(40, 64);
   display.getTextBounds(F("NO HP"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((128 - w) / 2, 40);
   display.print(F("NO HP"));
+  display.display();
+  LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
   display.getTextBounds(F("081234567898"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((128 - w) / 2, 52);
   display.print(noHP);
   display.display();
   off();
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
   //---------------------------------------------------------------
 
@@ -327,12 +345,12 @@ void setup() {
   display.setCursor((128 - w) / 2, 20);
   display.println(F("CEK PRESSURE SENSOR"));
   display.display();
-  LowPower.powerDown(SLEEP_500MS, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
   //cek via ads1115
   reads = digitalRead(connectPres);
   Serial.println(reads);
 
-  if (reads == 0) {
+  if (reads == 1) {
     Serial.println("pressure sensor 1 not connected");
     Serial.flush();
     display.getTextBounds(F("Pressure Sensor"), 0, 0, &posx, &posy, &w, &h);
@@ -356,6 +374,7 @@ void setup() {
   display.display();
   off();
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
 
   //DHT INIT
   s_on();
@@ -364,19 +383,20 @@ void setup() {
   hapusmenu(17, 64);
   delay(100);
   dht.begin();
-  display.getTextBounds(F("INIT DHT11"), 0, 0, &posx, &posy, &w, &h);
+  display.getTextBounds(F("INIT DHT SENSOR"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((128 - w) / 2, 20);
-  display.println(F("INIT DHT11"));
+  display.println(F("INIT DHT SENSOR"));
   display.display();
-  LowPower.powerDown(SLEEP_500MS, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
   display.getTextBounds(F("DHT READY!!"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((128 - w) / 2, 40);
   display.println(F("DHT READY!!"));
   display.display();
   off();
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
 
-  //INIT SIM800L & SEND SMS
+  //INIT SIM900A & SEND SMS
   i_En(oled);
   s_on();
   Serial.println(F("INITIALIZATION SIM900A..."));
@@ -387,35 +407,39 @@ void setup() {
   display.setCursor((128 - w) / 2, 20);
   display.println(F("INIT GSM MODULE"));
   display.display();
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
   sim();
 
-  //CEK KUOTA
+  //SEND SMS
   hapusmenu(17, 64);
-  display.getTextBounds(F("CHECK BALANCE"), 0, 0, &posx, &posy, &w, &h);
+  display.getTextBounds(F("SEND SMS TO ADMIN"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((128 - w) / 2, 20);
-  display.println(F("CHECK BALANCE"));
+  display.println(F("SEND SMS TO ADMIN"));
   display.display();
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
-  display.getTextBounds(F("*888#3#2"), 0, 0, &posx, &posy, &w, &h);
-  display.setCursor((128 - w) / 2, 35);
-  display.print(F("*888#3#2"));
+  display.getTextBounds(F("081234567898"), 0, 0, &posx, &posy, &w, &h);
+  display.setCursor((128 - w) / 2, 30);
+  display.print(noHP);
   display.display();
-  //cekkuota();
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+  
+  sendSMS();
+  
+  LowPower.powerDown(SLEEP_4S, ADC_OFF, BOD_OFF);
   i_En(oled);
   display.getTextBounds(F("Finish!!!"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((128 - w) / 2, 50);
   display.print(F("Finish!!!"));
   display.display();
   off();
-  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_4S, ADC_OFF, BOD_OFF);
 
   display.clearDisplay();
   displaydate();
   nows = rtc.now();
   setTime(nows.hour(), nows.minute(), nows.second(), nows.month(), nows.day(), nows.year());
-  Alarm.timerRepeat(60, displaydate);
   Alarm.timerRepeat(60 * interval, ambil);
-  //Alarm.alarmRepeat(5, 0, 0, cekkuota); // 5:00am every day
+
 
   //display menu parameter
   hapusmenu(17, 64);
@@ -446,13 +470,16 @@ void loop() {
 }
 
 void bersihdata() {
+  Alarm.delay(0);
   reads = '0'; tekanan = '0'; temp = '0'; humid = '0'; volt = '0';
-  y = '0'; filename = ""; y = "";
+  filename = ""; y = "";
 }
 
 void ambil() {
   on();
   Alarm.delay(0);
+  displaydate();
+  hapusmenu(100, 52);
   //WAKE UP GSM
   Serial.println(F(" "));
   Serial.println(F("AT+CSCLK=0"));
@@ -469,6 +496,7 @@ void ambil() {
 
   // burst sampling
   for (i = 0; i < burst; i++) {
+    displaydate();
     reads += ads.readADC_SingleEnded(0); //pressure
     LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
   }
@@ -488,7 +516,9 @@ void ambil() {
   }
 
   //display data
+  displaydate();
   display.fillRect(40, 17, 32, 64, BLACK); //clear display
+  display.fillRect(100, 52, 32, 64, BLACK); //clear display
   display.display();
   display.setCursor(40, 17);  display.print(tekanan, 1);
   display.setCursor(40, 30);  display.print(temp, 1);
@@ -497,6 +527,7 @@ void ambil() {
   display.display();
 
   //debug serial
+  displaydate();
   Serial.print(F("PRESSURE = "));
   Serial.println(tekanan, 1);
   Serial.print(F("TEMPERATURE = "));
@@ -507,25 +538,35 @@ void ambil() {
   Serial.println(volt, 1);
 
   //SIMPAN DATA
+  displaydate();
   Serial.println(F("Simpan data"));
   Serial.flush();
   simpandata();
 
   //KIRIM data
+  displaydate();
   s_on();
   Serial.println(F("SEND DATA TO SERVER"));
   Serial.flush();
   s_off();
-  server(1);
+  sendServer();
+
   //kode network
+  displaydate();
   spiEn();
+  s_on();
+  Serial.println(F("simpan kode network"));
+  Serial.flush();
+  s_off();
   file = SD.open(filename, FILE_WRITE);
   file.print(kode);
   file.print(",");
   file.println(network);
   delay(100);
   file.close();
+
   //display kode network
+  displaydate();
   i_En(oled);
   display.setCursor(100, 52);  display.print(kode);
   display.display();
@@ -546,16 +587,20 @@ void ambil() {
     Serial.flush();
     s_off();
     off();
-    if (start < ((interval * 60) - 10)) {
+    if (start < ((interval * 60) - 15)) {
       LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
       LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+
+    }
+    if (start < ((interval * 60) - 5)) {
+      LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
     }
     else {
       break;
     }
   }
   i_En(rtc_addr);
-  nows = rtc.now();
+  displaydate();
   setTime(nows.hour(), nows.minute(), nows.second(), nows.month(), nows.day(), nows.year());
   s_on();
   Serial.println("ready to get data");
@@ -564,6 +609,7 @@ void ambil() {
 }
 
 void simpandata() {
+  Alarm.delay(0);
   spiEn();
   SdFile::dateTimeCallback(dateTime);
   filename = "";
@@ -582,6 +628,7 @@ void simpandata() {
   }
   filename += ".txt";
 
+  displaydate();
   file = SD.open(filename);
   a = file.available();
   file.close();
@@ -639,6 +686,7 @@ void simpandata() {
   file.print(y);
   delay(100);
   file.close();
+  displaydate();
 }
 
 void configs() {
@@ -675,17 +723,33 @@ void configs() {
   Serial.println(F("GET CONFIG SUCCESS!!!"));
   Serial.flush();
 
+  //interval data
   a = filename.indexOf("=", b + 1);
   b = filename.indexOf("\r", a + 1);
   interval = filename.substring(a + 1, b).toInt();
 
+  //burst interval
   a = filename.indexOf("=", b + 1);
   b = filename.indexOf("\r", a + 1);
   burst = filename.substring(a + 1, b).toInt();
 
+  //no HP
   a = filename.indexOf("=", b + 1);
   b = filename.indexOf("\r", a + 1);
   noHP = filename.substring(a + 2, b);
+  
+  //LATITUDE
+  a = filename.indexOf("=", b + 1);
+  b = filename.indexOf("\r", a + 1);
+  y = filename.substring(a + 2, b);
+  latitude = y.toFloat();
+  
+  //LONGITUDE
+  a = filename.indexOf("=", b + 1);
+  b = filename.indexOf("\r", a + 1);
+  y = filename.substring(a + 2, b);
+  longitude = y.toFloat();
+  
   filename = '0';
 
   Serial.print(F("Interval data = "));
@@ -1007,8 +1071,12 @@ cops:
   Serial.println(F("AT+CREG=1"));
   Serial1.println(F("AT+CREG=1"));
   bacaserial(200);
+  LowPower.powerDown(SLEEP_500MS, ADC_OFF, BOD_OFF);
+
   Serial.println(F("AT+COPS?"));
   Serial1.println(F("AT+COPS?"));
+  Serial.flush();
+  Serial1.flush();
   delay(200);
   while (Serial1.available() > 0) {
     if (Serial1.find("+COPS:")) {
@@ -1021,7 +1089,6 @@ cops:
   Serial.flush();
   Serial1.flush();
 
-
   a = filename.indexOf('"');
   b = filename.indexOf('"', a + 1);
   y = filename.substring(a + 1, b);
@@ -1031,11 +1098,12 @@ cops:
   Serial.println(y);
   Serial.flush();
   delay(100);
-  off();
+
   //option if not register at network
   if (operators == "")  {
     c++;
     if (c == 15) {
+      Serial.println(F("NO OPERATOR FOUND"));
       i_En(oled);
       display.getTextBounds(F("NO OPERATOR FOUND"), 0, 0, &posx, &posy, &w, &h);
       display.setCursor((128 - w) / 2, 50);
@@ -1147,12 +1215,23 @@ void sim() { //udah fix
   }
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
 
+  Serial.println(F("AT+CPIN?"));
+  Serial1.println(F("AT+CPIN?"));
+  bacaserial(200);
+  Serial.println(F("AT+CFUN=1"));
+  Serial1.println(F("AT+CFUN=1"));
+  bacaserial(200);
+  Serial.println(F("AT+CBAND=\"ALL_BAND\""));
+  Serial1.println(F("AT+CBAND=\"ALL_BAND\""));
+  bacaserial(200);
+
   //CEK SIM
   hapusmenu(30, 64);
   display.getTextBounds(F("OPERATOR"), 0, 0, &posx, &posy, &w, &h);
   display.setCursor((128 - w) / 2, 35);
   display.println(F("OPERATOR"));
   display.display();
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
   off();
   ceksim();
   i_En(oled);
@@ -1162,6 +1241,7 @@ void sim() { //udah fix
   display.display();
   off();
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
 
   //CHECK SIGNAL QUALITY
   hapusmenu(30, 64);
@@ -1170,7 +1250,9 @@ void sim() { //udah fix
   display.println(F("SIGNAL"));
   display.display();
   off();
+
   sinyal();
+
   i_En(oled);
   display.getTextBounds((char*)network.c_str(), 0, 0, &posx, &posy, &w, &h); //(char*)WiFi.SSID().c_str()
   display.setCursor((128 - w) / 2, 50);
@@ -1178,15 +1260,7 @@ void sim() { //udah fix
   display.display();
   off();
   LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
-
-  //SIM800L sleep mode
-  s1_on();
-  s_on();
-  Serial.println(F("AT+CSCLK=2"));
-  Serial.flush();
-  Serial1.println(F("AT+CSCLK=2"));
-  Serial1.flush();
-  off();
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
 }
 
 void bacaserial(int wait) {
@@ -1202,10 +1276,11 @@ void bacaserial(int wait) {
   }
 }
 
-void server(byte t) {
-  //CHECK GPRS ATTACHED OR NOT
+void sendServer() {
+  Alarm.delay(0);
 serve:
-  filename = "";
+
+  result = "";
   s_on();
   s1_on();
   power_timer0_enable();
@@ -1215,6 +1290,7 @@ serve:
   Serial1.flush();
   bacaserial(200);
 
+  displaydate();
   Serial.print(F("AT+CGATT? "));
   Serial1.println(F("AT+CGATT?"));
   delay(200);
@@ -1222,24 +1298,26 @@ serve:
     if (Serial1.find("+CGATT: ")) {
       while (Serial1.available() > 0) {
         g = Serial1.read();
-        filename += g;
+        result += g;
       }
     }
   }
   Serial.flush();
   Serial1.flush();
-  Serial.println(filename);
+  Serial.println(result);
   Serial.flush();
   Serial1.flush();
 
-  if (filename.toInt() == 1) {
+  if (result.toInt() == 1) {
     //kirim data ke server
+    displaydate();
     s_on();
     s1_on();
     Serial1.println(F("AT+CIPSHUT"));
     bacaserial(500);
     Serial.flush();
     Serial1.flush();
+    displaydate();
     Serial1.println(F("AT+SAPBR=0,1"));
     bacaserial(200);
     Serial.flush();
@@ -1251,6 +1329,7 @@ serve:
     apn(operators);
 
     //CONNECTION TYPE
+    displaydate();
     Serial1.println(F("AT+SAPBR=3,1,\"CONTYPE\",\"GPRS\""));
     bacaserial(200);
     Serial.flush();
@@ -1258,6 +1337,7 @@ serve:
     LowPower.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
 
     //APN ID
+    displaydate();
     s_on();
     s1_on();
     result = "AT+SAPBR=3,1,\"APN\",\"" + APN + "\"";
@@ -1269,6 +1349,7 @@ serve:
     LowPower.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
 
     //APN USER
+    displaydate();
     s_on();
     s1_on();
     result = "AT+SAPBR=3,1,\"USER\",\"" + USER + "\"";
@@ -1279,6 +1360,7 @@ serve:
     LowPower.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
 
     //APN PASSWORD
+    displaydate();
     s_on();
     s1_on();
     result = "AT+SAPBR=3,1,\"PWD\",\"" + PWD + "\"";
@@ -1289,6 +1371,7 @@ serve:
     LowPower.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
 
     //OPEN BEARER
+    displaydate();
     s_on();
     s1_on();
     Serial1.println(F("AT+SAPBR=1,1"));
@@ -1298,6 +1381,7 @@ serve:
     LowPower.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
 
     //QUERY BEARER
+    displaydate();
     s_on();
     s1_on();
     Serial1.println(F("AT+SAPBR=2,1"));
@@ -1308,6 +1392,7 @@ serve:
     LowPower.powerDown(SLEEP_500MS, ADC_OFF, BOD_OFF);
 
     //TERMINATE HTTP SERVICE
+    displaydate();
     Serial1.println(F("AT+HTTPTERM"));
     bacaserial(200);
     Serial.flush();
@@ -1320,138 +1405,73 @@ serve:
     LowPower.powerDown(SLEEP_120MS, ADC_OFF, BOD_OFF);
 
     //SET HTTP PARAMETERS VALUE
+    displaydate();
     Serial1.println(F("AT+HTTPPARA=\"CID\",1"));
     Serial1.flush();
     bacaserial(200);
     Serial.flush();
     Serial1.flush();
     LowPower.powerDown(SLEEP_120MS, ADC_OFF, BOD_OFF);
-    if (t == 1) { // send data measurement to server
-      //SET HTTP URL
-      s_on();
-      s1_on();
-      Serial1.println(F("AT+HTTPPARA=\"URL\",\"http://www.mantisid.id/api/product/pdam_dt_c.php\""));
-      bacaserial(1500);
-      Serial.flush();
-      Serial1.flush();
-      //http://www.mantisid.id/api/product/pdam_dt_c.php?="Data":"'2017-11-05 10:00:00', '111.111111', '-6.2222222', '400.33', '34.00', '5.05', '1.66', 'pdam_001', '5', '3'"
-      //"Data":"'2018-02-13 20:30:00','111.111111','-6.2222222','400.33','34.00','5.05','1.6645','BOGOR05','5','3'"
-      //Formatnya Date, longitude, latitude, pressure, temperature, volt, ampere, source, id, burst interval, data interval
-      y = "{\"Data\":\"'";
-      y += String(sekarang.year()) + "-";
-      if (sekarang.month() < 10) {
-        y += "0" + String(sekarang.month()) + "-";
-      }
-      if (sekarang.month() >= 10) {
-        y += String(sekarang.month()) + "-";
-      }
-      if (sekarang.day() < 10) {
-        y += "0" + String(sekarang.day()) + " ";
-      }
-      if (sekarang.day() >= 10) {
-        y += String(sekarang.day()) + " ";
-      }
-      if (sekarang.hour() < 10) {
-        y += "0" + String(sekarang.hour()) + ":";
-      }
-      if (sekarang.hour() >= 10) {
-        y += String(sekarang.hour()) + ":";
-      }
-      if (sekarang.minute() < 10) {
-        y += "0" + String(sekarang.minute()) + ":";
-      }
-      if (sekarang.minute() >= 10) {
-        y += String(sekarang.minute()) + ":";
-      }
-      if (sekarang.second() < 10) {
-        y += "0" + String(sekarang.second());
-      }
-      if (sekarang.second() >= 10) {
-        y += String(sekarang.second());
-      }
-      y += "','";
-      y += "109.9875','";
-      y += "-7.9123','";
-      y += String(tekanan, 2) + "','";
-      y += String(temp, 2) + "','";
-      y += String(volt, 2) + "','";
-      y += String(humid, 4) + "','";
-      y += String(source) + "','";
-      y += String(ID) + "','";
-      y += String(burst) + "','";
-      y += String(interval) + "'\"}";
-    }
-    if (t == 2) { // send data kuota to server
-      //GET TIME
-      i_En(rtc_addr);
-      nows = rtc.now();
-      i_Dis();
 
-      //SET HTTP URL
-      s1_on();
-      s_on();
-      //Serial.println(F("AT+HTTPPARA=\"URL\",\"http://www.mantisid.id/api/product/pdam_sim_c.php\""));
-      Serial1.println(F("AT+HTTPPARA=\"URL\",\"http://www.mantisid.id/api/product/pdam_sim_c.php\""));
-      bacaserial(1000);
-      Serial.flush();
-      Serial1.flush();
-      //http://www.mantisid.id/api/product/pdam_sim_c.php
-      //Formatnya YYY-MM-DD HH:MM:SS, ID, PULSA, KUOTA
-      y = "{\"Data\":\"'";
-      y += String(nows.year()) + "-";
-      if (nows.month() < 10) {
-        y += "0" + String(nows.month()) + "-";
-      }
-      if (nows.month() >= 10) {
-        y += String(nows.month()) + "-";
-      }
-      if (nows.day() < 10) {
-        y += "0" + String(nows.day()) + " ";
-      }
-      if (nows.day() >= 10) {
-        y += String(nows.day()) + " ";
-      }
-      if (nows.hour() < 10) {
-        y += "0" + String(nows.hour()) + ":";
-      }
-      if (nows.hour() >= 10) {
-        y += String(nows.hour()) + ":";
-      }
-      if (nows.minute() < 10) {
-        y += "0" + String(nows.minute()) + ":";
-      }
-      if (nows.minute() >= 10) {
-        y += String(nows.minute()) + ":";
-      }
-      if (nows.second() < 10) {
-        y += "0" + String(nows.second());
-      }
-      if (nows.second() >= 10) {
-        y += String(nows.second());
-      }
-      y += "','";
-      y += String(ID) + "','";
-      y += String(sms) + "','";
-      y += String(kuota) + "'\"}";
-
-      //simpan data sisa pulsa dan kuota ke dalam sd card
-      result = "pulsa.ab";
-      result.toCharArray(str, 13);
-      // set date time callback function
-      spiEn();
-      delay(10);
-      SdFile::dateTimeCallback(dateTime);
-      delay(10);
-      SD.begin(SSpin);
-      file = SD.open(str, FILE_WRITE);
-      file.println(y);
-      Serial.println(y);
-      Serial.flush();
-      file.flush();
-      file.close();
-      spiDis();
+    // send data measurement to server
+    //SET HTTP URL
+    s_on();
+    s1_on();
+    result = "AT+HTTPPARA=\"URL\",\"" + server + url + "\"";
+    Serial.println(result);
+    Serial1.println(result);
+    bacaserial(1500);
+    Serial.flush();
+    Serial1.flush();
+    //http://www.mantisid.id/api/product/pdam_dt_c.php?="Data":"'2017-11-05 10:00:00', '111.111111', '-6.2222222', '400.33', '34.00', '5.05', '1.66', 'pdam_001', '5', '3'"
+    //Formatnya Date, longitude, latitude, pressure, temperature, volt, ampere, source, id, burst interval, data interval
+    y = "{\"Data\":\"'";
+    y += String(sekarang.year()) + "-";
+    if (sekarang.month() < 10) {
+      y += "0" + String(sekarang.month()) + "-";
     }
+    if (sekarang.month() >= 10) {
+      y += String(sekarang.month()) + "-";
+    }
+    if (sekarang.day() < 10) {
+      y += "0" + String(sekarang.day()) + " ";
+    }
+    if (sekarang.day() >= 10) {
+      y += String(sekarang.day()) + " ";
+    }
+    if (sekarang.hour() < 10) {
+      y += "0" + String(sekarang.hour()) + ":";
+    }
+    if (sekarang.hour() >= 10) {
+      y += String(sekarang.hour()) + ":";
+    }
+    if (sekarang.minute() < 10) {
+      y += "0" + String(sekarang.minute()) + ":";
+    }
+    if (sekarang.minute() >= 10) {
+      y += String(sekarang.minute()) + ":";
+    }
+    if (sekarang.second() < 10) {
+      y += "0" + String(sekarang.second());
+    }
+    if (sekarang.second() >= 10) {
+      y += String(sekarang.second());
+    }
+
+    y += "','" + String(longitude, 4);
+    y += "','" + String(latitude, 4) + "','";
+    y += String(tekanan, 2) + "','";
+    y += String(temp, 2) + "','";
+    y += String(volt, 2) + "','";
+    y += String(humid, 4) + "','";
+    y += String(source) + "','";
+    y += String(ID) + "','";
+    y += String(burst) + "','";
+    y += String(interval) + "'\"}";
+
+
     //SET HTTP DATA FOR SENDING TO SERVER
+    displaydate();
     s_on();
     s1_on();
     power_timer0_enable();
@@ -1465,7 +1485,9 @@ serve:
       }
     }
     bacaserial(500);
+
     //SEND DATA
+    displaydate();
     Serial.println(F("KIRIM DATANYA"));
     Serial.println(y);
     Serial1.println(y);
@@ -1476,6 +1498,7 @@ serve:
     Serial1.flush();
 
     //HTTP METHOD ACTION
+    displaydate();
     filename = "";
     power_timer0_enable();
     s_on();
@@ -1500,10 +1523,10 @@ serve:
     while ((start + 30000) > millis()) {
       while (Serial1.available() > 0) {
         g = Serial1.read();
-        filename += g;
+        result += g;
         Serial.print(g);
-        a = filename.indexOf(":");
-        b = filename.length();
+        a = result.indexOf(":");
+        b = result.length();
         if (b - a > 8) {
           //Serial.println(F("keluar yuk"));
           break;
@@ -1516,6 +1539,8 @@ serve:
     }
     Serial.flush();
     Serial1.flush();
+
+    displaydate();
     a = '0';
     b = '0';
     //LowPower.powerDown(SLEEP_500MS, ADC_OFF, BOD_OFF);
@@ -1526,15 +1551,18 @@ serve:
     Serial.flush();
     Serial1.flush();
     //LowPower.powerDown(SLEEP_500MS, ADC_OFF, BOD_OFF);
+    displaydate();
     s_on();
     s1_on();
     Serial.println(F("AT+SAPBR=0,1"));
     Serial1.println(F("AT+SAPBR=0,1"));
     bacaserial(200);
     a = '0';
-    a = filename.indexOf(',');
-    b = filename.indexOf(',', a + 1);
-    kode = filename.substring(a + 1, b).toInt();
+    a = result.indexOf(',');
+    b = result.indexOf(',', a + 1);
+    kode = result.substring(a + 1, b).toInt();
+
+    displaydate();
     statuscode(kode);
     Serial.print(F("kode="));
     Serial.print(kode);
@@ -1550,164 +1578,86 @@ serve:
     Serial.flush();
     s_off();
   }
-
+  displaydate();
 }
 
-void cekkuota() {
-  c = 0;
+void sendSMS() {
   s_on();
   s1_on();
-  Serial1.println("AT");
-  Serial.flush();
-  Serial1.flush();
-  bacaserial(200);
-  off();
-  LowPower.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
-  s_on();
-  s1_on();
-  Serial1.println("AT+CSCLK=0");
-  Serial.flush();
-  Serial1.flush();
-  off();
-  LowPower.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
-  s_on();
-  s1_on();
-  Serial1.println("AT+CSCLK=0");
-  bacaserial(200);
-  Serial.flush();
-  Serial1.flush();
-  off();
-  LowPower.powerDown(SLEEP_500MS, ADC_OFF, BOD_OFF);
-top:
-  if (c == 5)  {
-    sms = "sisa pulsa tidak diketahui";
-    kuota = "sisa kuota tidak diketahui";
-    goto down;
-  }
-  sms = "";
-  kuota = "";
-
   power_timer0_enable();
-  s_on();
-  s1_on();
-  Serial1.println("AT+CUSD=2");
-  bacaserial(200);
-  Serial.flush();
-  Serial1.flush();
-  off();
-  LowPower.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
 
-  s_on();
-  s1_on();
-  Serial1.println("AT+CUSD=1");
+  Serial.println(F("AT+CMGF = 1"));
+  Serial1.println(F("AT+CMGF=1"));
   bacaserial(200);
-  Serial.flush();
-  Serial1.flush();
-  off();
-  LowPower.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
-  sms = "";
-  power_timer0_enable();
-  s_on();
-  s1_on();
-  start = millis();
-  Serial1.println("AT+CUSD=1,\"*888#\"");
-  Serial1.flush();
+  LowPower.powerDown(SLEEP_120MS, ADC_OFF, BOD_OFF);
+  Serial.println(F("AT+CSCS=\"GSM\""));
+  Serial.println(F("AT+CSCS=\"GSM\""));
+  bacaserial(200);
+  LowPower.powerDown(SLEEP_120MS, ADC_OFF, BOD_OFF);
 
-  while ((start + 10000) > millis()) {
-    while (Serial1.available() > 0) {
-      g = Serial1.read();
-      Serial.write(g);
-      sms += g;
-    }
+  i_En(oled);
+  display.getTextBounds(F("Sending SMS"), 0, 0, &posx, &posy, &w, &h);
+  display.setCursor((128 - w) / 2, 40);
+  display.print(F("Sending SMS"));
+  display.display();
+  y = "AT+CMGS=\"" + noHP + "\"";
+  Serial.println(y);
+  Serial1.println(y);
+
+  while (Serial1.find(">") == false) {
   }
-  Serial.flush();
-  Serial1.flush();
-  a = sms.indexOf(':');
-  b = sms.indexOf('"', a + 1);
-  i = sms.substring(a + 1, b - 1).toInt();
-  Serial.print("+CUSD: ");
-  Serial.println(i);
-  if (i == 0) {
-    c++;
-    goto top;
-  }
-  a = sms.indexOf(':');
-  b = sms.indexOf('.', a + 1);
-  b = sms.indexOf('.', b + 1);
-  c = sms.indexOf('/', a);
-  kuota = sms.substring(c - 11, c + 8);
-  Serial.println(kuota);
-  sms = sms.substring(a + 5, b);
-  sms = sms + '.' + kuota;
-  Serial.println(sms);
-  Serial.flush();
 
   LowPower.powerDown(SLEEP_120MS, ADC_OFF, BOD_OFF);
-  start = millis();
-  Serial1.println("AT+CUSD=1,\"3\"");
-  while ((start + 5000) > millis()) {
-    while (Serial1.available() > 0) {
-      g = Serial1.read();
-      Serial.write(g);
-      kuota += g;
+
+  // start = millis();
+  y = "I-GAUGE LOGGER ID " + ID + " ready send data to server";
+  Serial.println(y);
+  Serial1.println(y);
+  //delay(1000);
+  Serial1.println((char)26);
+
+  //WAITING OK
+  a = 0;
+  while (Serial1.available() > 0) {
+    while (Serial1.find("OK") == false) {
+      if (Serial1.find("OK") == true) {
+        a = 1;
+        Serial.println(F("OK receive"));
+        break;
+      }
+    }
+    if (a == 1) {
+      Serial.println(F("OK getting out"));
+      break;
     }
   }
-  Serial.flush();
-  Serial1.flush();
-  a = kuota.indexOf(':');
-  b = kuota.indexOf('"', a + 1);
-  i = kuota.substring(a + 1, b - 1).toInt();
-  if (i == 0) {
-    goto top;
-  }
-  //LowPower.powerDown(SLEEP_120MS, ADC_OFF, BOD_OFF);
 
-  kuota = "";
-  start = millis();
-  LowPower.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
-  Serial1.println("AT+CUSD=1,\"2\"");
-  while ((start + 5000) > millis()) {
-    while (Serial1.available() > 0) {
-      g = Serial1.read();
-      Serial.write(g);
-      kuota += g;
-    }
-  }
+  Serial.println(F("sms has been sent"));
   Serial.flush();
   Serial1.flush();
-  a = kuota.indexOf(':');
-  b = kuota.indexOf('"', a + 1);
-  i = kuota.substring(a + 1, b - 1).toInt();
-  if (i == 0) {
-    goto top;
-  }
-  a = kuota.indexOf(':');
-  b = kuota.indexOf('.', a + 1);
-  a = kuota.indexOf(':', a + 1);
-  kuota = kuota.substring(a + 2, b);
+  display.getTextBounds(F("                  "), 0, 0, &posx, &posy, &w, &h);
+  display.setCursor((128 - w) / 2, 40);
+  display.print(F("                  "));
+  display.display();
+  display.getTextBounds(F("SMS sent"), 0, 0, &posx, &posy, &w, &h);
+  display.setCursor((128 - w) / 2, 40);
+  display.print(F("SMS sent"));
+  display.display();
 
-down:
-  a = 0; b = 0; i = 0;
-  Serial.flush();
-  Serial1.flush();
-  Serial1.println("AT+CUSD=2");
-  bacaserial(200);
-  Serial.flush();
-  Serial1.flush();
-  Serial.println(sms);
-  Serial.print(F("KUOTA : "));
-  Serial.println(kuota);
-  Serial.flush();
-  Serial1.flush();
-  server(2); //send kuota to server
+  //SIM sleep mode
+  s1_on();
   s_on();
-  Serial.println(F("cek kuota selesai"));
+  Serial.println(F("AT+CSCLK=2"));
   Serial.flush();
-  s_off();
+  Serial1.println(F("AT+CSCLK=2"));
+  Serial1.flush();
+  off();
+
 }
 
 
-/*
+
+/* 
   {"Data":"'2019-02-26 23:11:20','99.9875','999.9123','10.00','26.00','0.78','80.0000','MEGA2560','BOGOR06','0','0'"}
 
   AT+CIPSHUT
