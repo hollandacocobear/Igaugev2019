@@ -20,6 +20,7 @@
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
+#include <math.h>
 
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WiFi.h>
@@ -432,7 +433,7 @@ void setup() {
 }
 
 void bersihdata() {
-  reads = 0; tekanan = 0; temp = 0; humid = 0; volt = 0; filename = ""; y = "";
+  reads = '0'; tekanan = 0; temp = 0; humid = 0; volt = 0; filename = ""; y = "";
 }
 
 void configs() {
@@ -484,6 +485,12 @@ void configs() {
   b = filename.indexOf("\r", a + 1);
   burst = filename.substring(a + 1, b).toInt();
 
+  //OFFSET
+  a = filename.indexOf("=", b + 1);
+  b = filename.indexOf("\r", a + 1);
+  y = filename.substring(a + 2, b);
+  offset = y.toFloat();
+
   //LATITUDE
   a = filename.indexOf("=", b + 1);
   b = filename.indexOf("\r", a + 1);
@@ -510,6 +517,8 @@ void configs() {
   if (interval < 2)
     Serial.println(F(" second"));
   else Serial.println(F(" seconds"));
+  Serial.print(F("OFFSET = "));
+  Serial.println(offset, 4);
   Serial.print(F("LATITUDE = "));
   Serial.println(flat, 4);
   Serial.print(F("LONGITUDE = "));
@@ -540,7 +549,6 @@ void dateTime(uint16_t* date, uint16_t* time) {
 }
 
 void loop() {
-
   waktu = millis();
   bersihdata();
   Serial.println("ready to get data");
@@ -562,9 +570,12 @@ void loop() {
 
   //KONVERSI
   volt = ((float)reads / (float)burst) * 0.1875 / 1000.0000; // nilai voltase dari nilai DN
-  tekanan = (300.00 * volt - 150.00) * 0.01 + float(offset);
+  volt = volt * 147.00 / 100.00;
+  Serial.println(volt);
+  tekanan = (300.00 * volt - 150.00) * 0.01 + offset;
+  if (tekanan < 0) tekanan = 0;
   reads = ads.readADC_SingleEnded(3);
-  volt = (float)reads * 0.1875 / 1000.0000 * 3.0000 / 2.00000; // nilai voltase dari nilai DN
+  volt = (float)reads * 0.1875 / 1000.0000 * 147.00 / 100.00; // nilai voltase dari nilai DN
   humid = dht.readHumidity();      //humid
   temp = dht.readTemperature();    //temperature
   if (isnan(humid)) {
