@@ -101,7 +101,7 @@ Adafruit_ADS1115 ads(ads_addr);
 
 //GLOBAL VARIABLE
 int i, kode, tahun;
-char sdcard[60];
+char sdcard[200];
 char g;
 byte a, b, c, interval, burst;
 byte bulan, hari, jam, menit, detik;
@@ -721,6 +721,7 @@ void configs() {
   for ( a = 0; a < sizeof(sdcard); a++) { //clear variable
     sdcard[a] = (char)0;
   }
+  
   s_on();
   Serial.println(filename);
   Serial.flush();
@@ -766,6 +767,8 @@ void configs() {
 
   filename = '0';
 
+  Serial.print(F("Station Name = "));
+  Serial.println(ID);
   Serial.print(F("Interval data = "));
   Serial.print(interval);
   if (interval < 2)
